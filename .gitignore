@@ -24,3 +24,5 @@
 
 # Target directory
 target/
+/sloeber.ino.cpp
+/Release/
