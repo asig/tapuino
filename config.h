@@ -2,7 +2,13 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
-#include "config-user.h"
+//#include "config-user.h"
+
+#define LCD_USE_SSD1306_OLED_MODULE
+#define LCD_SSD1306_128x32
+#define LCD_SSD1306_BIG_FONTS
+#define LCD_I2C_ADDR 0x3c
+#define TAPUINO_LANGUAGE_EN
 
 // thanks stack overflow: http://stackoverflow.com/questions/4301471/c-macro-to-test-if-more-than-one-defined
 #if defined(LCD_USE_SSD1306_OLED_MODULE) + defined(LCD_USE_1602_LCD_MODULE) + defined(LCD_USE_SSD131X_OLED_MODULE) != 1
@@ -58,11 +64,14 @@
 #define TAPE_READ_LOW()     TAPE_READ_PORT &= ~_BV(TAPE_READ_PIN)
 #define TAPE_READ_HIGH()    TAPE_READ_PORT |=  _BV(TAPE_READ_PIN)
 
+// Pin D8; Don't change it, it apparently is used in ISRs that stop working
+// otherwise. Need to find out how that works with ATmega328p
 #define TAPE_WRITE_PORT     PORTB
 #define TAPE_WRITE_DDR      DDRB
 #define TAPE_WRITE_PINS     PINB
 #define TAPE_WRITE_PIN      0
 
+// Pin D4
 #define MOTOR_PORT          PORTD
 #define MOTOR_DDR           DDRD
 #define MOTOR_PIN           4
@@ -76,6 +85,7 @@
 #define CONTROL_SET_BUS0()  CONTROL_PORT &= ~(_BV(CONTROL_PIN0) | _BV(CONTROL_PIN1))
 #define CONTROL_SET_BUS1()  { CONTROL_PORT &= ~_BV(CONTROL_PIN1); CONTROL_PORT |= _BV(CONTROL_PIN0); }
 
+// Pin D2
 #define REC_LED_PORT        PORTD
 #define REC_LED_DDR         DDRD
 #define REC_LED_PIN         2
@@ -87,10 +97,10 @@
 #define KEYS_READ_PORT      PORTC
 #define KEYS_READ_DDR       DDRC
 #define KEYS_READ_PINS      PINC
-#define KEY_SELECT_PIN      3
-#define KEY_ABORT_PIN       2
-#define KEY_PREV_PIN        1
-#define KEY_NEXT_PIN        0
+#define KEY_SELECT_PIN      0
+#define KEY_ABORT_PIN       1
+#define KEY_PREV_PIN        2
+#define KEY_NEXT_PIN        3
 
 // debugging
 //#define ENABLE_SERIAL
