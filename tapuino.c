@@ -116,7 +116,7 @@ void setup_cycle_timing() {
       ntsc_cycles_per_second = 1022727;
       pal_cycles_per_second  = 1108404;
     break;
-    case C16:
+    default: // C16:
       ntsc_cycles_per_second = 894886;
       pal_cycles_per_second  = 886724;
     break;
@@ -290,10 +290,10 @@ ISR(TIMER2_COMPA_vect) {
 void disk_timer_setup() {
   TCCR2A = 0;
   TCCR2B = 0;
-  
+
   OCR2A = F_CPU / 1024 / 100 - 1; // 100Hz timer
   TCCR2A = _BV(WGM21);            // CTC Mode
-  TCCR2B |=  (1 << CS22) | (1 << CS21) | (1 << CS20);  //pre-scaler 1024 
+  TCCR2B |=  (1 << CS22) | (1 << CS21) | (1 << CS20);  //pre-scaler 1024
   TIMSK2 |= _BV(OCIE2A);
 }
 
@@ -710,15 +710,22 @@ int tapuino_hardware_setup(void)
   
   disk_timer_setup();
   
-//  serial_init();
-//  serial_println_P(S_INIT);
-//  sprintf((char*)g_fat_buffer, "%d", free_ram());
-//  serial_println((char*)g_fat_buffer);
+#ifdef DEBUG
+  serial_init();
+  serial_println_P(S_INIT);
+  sprintf((char*)g_fat_buffer, "%d", free_ram());
+  serial_println((char*)g_fat_buffer);
+#endif
+
   lcd_setup();
-//  serial_println_P(S_INITI2COK);
+
+#ifdef DEBUG
+  serial_println_P(S_INITI2COK);
+#endif
+
   lcd_title_P(S_INIT);
   sprintf_P((char*)g_fat_buffer, S_VERSION_PATTERN, TAPUINO_MAJOR_VERSION, TAPUINO_MINOR_VERSION, TAPUINO_BUILD_VERSION);
-  lcd_status(g_fat_buffer);
+  lcd_status((char*)g_fat_buffer);
   _delay_ms(2000);
   
   
