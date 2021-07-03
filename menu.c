@@ -175,6 +175,7 @@ void handle_record_mode_ready(char* pfile_name) {
   }
 }
 
+#ifdef REC_MODE_MANUAL_ENABLED
 uint8_t handle_manual_filename(FILINFO* pfile_info) {
   uint8_t cur_char_pos = 0;
   uint8_t cursor_pos = 0;
@@ -246,8 +247,10 @@ uint8_t handle_manual_filename(FILINFO* pfile_info) {
     }    
   }
 }
+#endif
 
 void handle_record_mode(FILINFO* pfile_info) {
+#ifdef REC_MODE_MANUAL_ENABLED
   const char* ppitems[] = {S_REC_MODE_MANUAL, S_REC_MODE_AUTO};
   uint8_t cur_mode = 0;
 
@@ -280,6 +283,9 @@ void handle_record_mode(FILINFO* pfile_info) {
       break;
     }
   }
+#else
+  handle_record_mode_ready(NULL);
+#endif
 }
 
 
