@@ -37,6 +37,13 @@ typedef enum
   NSTC,
 } VIDEO_MODE;
 
+typedef enum {
+	ERR_NOERR = 0,
+	ERR_SDCARD_MOUNT_FAILED,
+	ERR_SDCARD_MKDIR_FAILED,
+	ERR_SDCARD_OPENDIR_FAILED
+} ErrorCode;
+
 
 // magic strings found in the TAP header, represented as uint32_t values in little endian format (reversed string)
 #define TAP_MAGIC_C64      0x2D343643   // "C64-"  as "-46C"
@@ -613,13 +620,13 @@ void record_file(char* pfile_name) {
   REC_LED_OFF();
 }
 
-/*
+#ifdef DEBUG
 int free_ram() {
   extern int __heap_start, *__brkval; 
   int v; 
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 }
-*/
+#endif
 
 #ifndef eeprom_update_byte
 #define eeprom_update_byte(loc, val) \
@@ -657,7 +664,8 @@ void save_eeprom_data() {
   eeprom_update_byte((uint8_t *) 8, g_rec_auto_finalize);
 }
 
-int tapuino_hardware_setup(void)
+
+ErrorCode tapuino_hardware_setup(void)
 {
   FRESULT res;
   uint8_t tmp;
@@ -720,14 +728,12 @@ int tapuino_hardware_setup(void)
   lcd_setup();
 
 #ifdef DEBUG
-  serial_println_P(S_INITI2COK);
+  serial_println_P(S_INIT_OK);
 #endif
 
   lcd_title_P(S_INIT);
   sprintf_P((char*)g_fat_buffer, S_VERSION_PATTERN, TAPUINO_MAJOR_VERSION, TAPUINO_MINOR_VERSION, TAPUINO_BUILD_VERSION);
   lcd_status((char*)g_fat_buffer);
-  _delay_ms(2000);
-  
   
   // something (possibly) dodgy in the bootloader causes a fail on cold boot.
   // retrying here seems to fix it (could just be the bootloader on my cheap Chinese clone?)
@@ -736,27 +742,30 @@ int tapuino_hardware_setup(void)
     _delay_ms(200);
     if (res == FR_OK) break;
   }
-  
-  if (res == FR_OK) {
-    SPI_Speed_Fast();
-    // attempt to open the recording dir
-    strcpy_P((char*)g_fat_buffer, S_DEFAULT_RECORD_DIR);
-    res = f_opendir(&g_dir, (char*)g_fat_buffer);
-    if (res != FR_OK) { // try to make it if its not there
-      res = f_mkdir((char*)g_fat_buffer);
-      if (res != FR_OK || f_opendir(&g_dir, (char*)g_fat_buffer) != FR_OK) {
-        lcd_title_P(S_INIT_FAILED);
-        lcd_status_P(S_MKDIR_FAILED);
-        lcd_busy_spinner();
-        return 0;
-      }
-    }
-    res = f_opendir(&g_dir, "/");
-  } else {
-    lcd_title_P(S_INIT_FAILED);
+  if (res != FR_OK) {
+	  lcd_title_P(S_INIT_FAILED);
+	  return ERR_SDCARD_MOUNT_FAILED;
   }
 
-  return(res == FR_OK);
+  SPI_Speed_Fast();
+  // attempt to open the recording dir
+  strcpy_P((char*)g_fat_buffer, S_DEFAULT_RECORD_DIR);
+  res = f_opendir(&g_dir, (char*)g_fat_buffer);
+  if (res != FR_OK) { // try to make it if its not there
+    res = f_mkdir((char*)g_fat_buffer);
+	if (res != FR_OK || f_opendir(&g_dir, (char*)g_fat_buffer) != FR_OK) {
+	  lcd_title_P(S_INIT_FAILED);
+	  lcd_status_P(S_MKDIR_FAILED);
+	  lcd_busy_spinner();
+	  return ERR_SDCARD_MKDIR_FAILED;
+	}
+  }
+  res = f_opendir(&g_dir, "/");
+  if (res != FR_OK) {
+    return ERR_SDCARD_OPENDIR_FAILED;
+  }
+
+  return ERR_NOERR;
 }
 
 void tapuino_run()
@@ -765,10 +774,23 @@ void tapuino_run()
   file_info.lfname = (TCHAR*)g_fat_buffer;
   file_info.lfsize = sizeof(g_fat_buffer);
 
-  if (!tapuino_hardware_setup()) {
+  int err = tapuino_hardware_setup();
+  if (err != ERR_NOERR) {
     lcd_title_P(S_INIT_FAILED);
-    return;
+    blink(err);
   }
-  
+
   main_menu(&file_info);
+}
+
+void blink(int cnt) {
+	for(;;) {
+		for (int i = 0; i < cnt; i++) {
+			REC_LED_ON();
+			_delay_ms(250);
+			REC_LED_OFF();
+			_delay_ms(250);
+		}
+		_delay_ms(1000);
+	}
 }
